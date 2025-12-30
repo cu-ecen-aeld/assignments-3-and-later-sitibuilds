@@ -1,4 +1,8 @@
 #include "systemcalls.h"
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <fcntl.h>
 
 /**
  * @param cmd the command to execute with system()
@@ -16,8 +20,10 @@ bool do_system(const char *cmd)
  *   and return a boolean true if the system() call completed with success
  *   or false() if it returned a failure
 */
-
-    return true;
+    if (NULL == cmd) return false;
+    int ret = system(cmd);
+    if (0 == ret) return true;
+    return false;
 }
 
 /**
@@ -49,18 +55,33 @@ bool do_exec(int count, ...)
     // and may be removed
     command[count] = command[count];
 
-/*
- * TODO:
- *   Execute a system command by calling fork, execv(),
- *   and wait instead of system (see LSP page 161).
- *   Use the command[0] as the full path to the command to execute
- *   (first argument to execv), and use the remaining arguments
- *   as second argument to the execv() command.
- *
-*/
+    /*
+    * TODO:
+    *   Execute a system command by calling fork, execv(),
+    *   and wait instead of system (see LSP page 161).
+    *   Use the command[0] as the full path to the command to execute
+    *   (first argument to execv), and use the remaining arguments
+    *   as second argument to the execv() command.
+    *
+    */
+   int pid = fork();
+   if (pid == 0) {
+        int i = execv(*command, command);
+        perror("execv");
+        exit(i);
+    } else if (-1 == pid) {
+        perror("fork");
+        va_end(args);
+        return false;
+    }
 
     va_end(args);
 
+    int wstatus;
+    int wpid = wait(&wstatus);
+    if (-1 == wpid) return false;
+    int ret = WEXITSTATUS(wstatus);
+    if (0 != ret) return false;
     return true;
 }
 
@@ -92,8 +113,43 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *   The rest of the behaviour is same as do_exec()
  *
 */
+    // Adapted from https://stackoverflow.com/a/13784315/1446624
+
+    int outfd = open(outputfile, O_WRONLY|O_TRUNC|O_CREAT, 0644);
+    if (outfd < 0) {
+        perror("open");
+        va_end(args);
+        return false;
+    }
+
+    int pid = fork();
+    if (pid == 0) {
+        if (dup2(outfd, 1) < 0) { // Set proc stdout to outputfile
+            perror("dup2");
+            exit(-1);
+        }
+        int i = close(outfd);
+        if (-1 == i) {
+            perror("close");
+            exit(i);
+        }
+        i = execv(*command, command);
+        perror("execv");
+        exit(i);
+    } else if (-1 == pid) {
+        perror("fork");
+        va_end(args);
+        return false;
+    }
+    close(outfd);
 
     va_end(args);
 
+    int wstatus;
+    int wpid = wait(&wstatus);
+    if (-1 == wpid) return false;
+    int ret = WEXITSTATUS(wstatus);
+
+    if (0 != ret) return false;
     return true;
 }
