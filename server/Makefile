@@ -4,7 +4,7 @@ SRCS := aesdsocket.c
 
 # Implicits
 CC = $(CROSS_COMPILE)gcc
-CFLAGS = -g -Werror
+CFLAGS = -g -Werror -Wall
 
 all: default
 

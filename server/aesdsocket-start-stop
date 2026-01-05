@@ -1,0 +1,41 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          aesdsocket
+# Short-Description: Start and stop aesdsocket daemon
+# Description:       This script starts the aesdsocket daemon
+### END INIT INFO
+
+set -e
+
+DAEMON="$(which aesdsocket)"
+
+do_start() {
+    start-stop-daemon --start --exec "$DAEMON" -- "-d"
+}
+
+do_stop() {
+    start-stop-daemon --stop --exec $DAEMON --signal TERM
+}
+
+case "$1" in
+    start)
+        do_start
+        ;;
+    stop)
+        do_stop
+        ;;
+    restart)
+        do_stop
+        do_start
+        ;;
+    status)
+        # Add status checking logic here
+        echo "Status check not implemented"
+        ;;
+    *)
+        echo "Usage: \$0 {start|stop|restart|status}"
+        exit 1
+        ;;
+esac
+
+exit 0

@@ -93,7 +93,6 @@ char *getaddrstr(struct sockaddr *addr){
     int af; // address family
     void *_addr;
     char *buf;
-    int bufsize;
     if (addr->sa_family == AF_INET) {
         const struct sockaddr_in *sin = (const struct sockaddr_in *) addr;
         _addr = (void *) &sin->sin_addr;
